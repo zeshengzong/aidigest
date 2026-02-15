@@ -1,0 +1,57 @@
+{# digest.md.j2 – Jinja2 template for the daily AI digest #}
+# 🤖 AI Digest – {{ date }}
+
+> Auto-generated daily summary of AI news from Hacker News, GitHub Trends, and Hugging Face.
+
+---
+
+{% if top_story %}
+## 🏆 Top Story
+
+### [{{ top_story.title }}]({{ top_story.url }})
+
+{{ top_story.summary }}
+
+{% if top_story.score %}⭐ Score: **{{ top_story.score }}**{% endif %} · 📰 Source: **{{ top_story.source }}**{% if top_story.author %} · 👤 {{ top_story.author }}{% endif %}
+
+---
+{% endif %}
+
+{% set hn_articles = articles | selectattr("source", "equalto", "hackernews") | list %}
+{% set gh_articles = articles | selectattr("source", "equalto", "github") | list %}
+{% set hf_articles = articles | selectattr("source", "equalto", "huggingface") | list %}
+
+{% if hn_articles %}
+## 📰 Hacker News
+
+| # | Title | Score | Summary |
+|---|-------|------:|---------|
+{% for a in hn_articles %}
+| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.score or "–" }} | {{ a.summary }} |
+{% endfor %}
+
+{% endif %}
+{% if gh_articles %}
+## 🔥 GitHub Trending
+
+| # | Repository | ⭐ Stars | Description |
+|---|-----------|--------:|-------------|
+{% for a in gh_articles %}
+| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.score or "–" }} | {{ a.summary or a.description }} |
+{% endfor %}
+
+{% endif %}
+{% if hf_articles %}
+## 🤗 Hugging Face
+
+| # | Title | Type | Summary |
+|---|-------|------|---------|
+{% for a in hf_articles %}
+| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.tags[0] if a.tags else "–" }} | {{ a.summary or a.description }} |
+{% endfor %}
+
+{% endif %}
+
+---
+
+<sub>Generated on {{ generated_at }} by [AIDigest](https://github.com/yourname/aidigest).</sub>
