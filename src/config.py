@@ -13,7 +13,7 @@ from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 
 # Load .env from project root (two levels up from this file)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +29,14 @@ class Settings(BaseSettings):
         description="Which LLM backend to use for summarisation.",
     )
 
+    @field_validator("llm_provider", mode="before")
+    @classmethod
+    def _default_llm_provider(cls, v: str) -> str:
+        """Fall back to 'openai' when the env var is empty or unset."""
+        if not v or v.strip() == "":
+            return "openai"
+        return v.strip().lower()
+
     # OpenAI
     openai_api_key: str = Field(default="", description="OpenAI API key.")
     openai_model: str = Field(default="gpt-4o", description="OpenAI model name.")
@@ -38,6 +46,15 @@ class Settings(BaseSettings):
     anthropic_model: str = Field(
         default="claude-sonnet-4-20250514", description="Anthropic model name."
     )
+
+    @field_validator("openai_model", "anthropic_model", mode="before")
+    @classmethod
+    def _default_model(cls, v: str, info) -> str:
+        """Keep default model when env var is empty."""
+        if not v or v.strip() == "":
+            defaults = {"openai_model": "gpt-4o", "anthropic_model": "claude-sonnet-4-20250514"}
+            return defaults.get(info.field_name, v)
+        return v.strip()
 
     # ---- Scraping ----------------------------------------------------------
     hn_max_stories: int = Field(default=30, ge=1, le=500)
