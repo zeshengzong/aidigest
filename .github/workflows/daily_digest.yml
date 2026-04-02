@@ -2,9 +2,14 @@ name: Daily AI Digest
 
 on:
   schedule:
-    # Run every day at 08:00 UTC
-    - cron: "0 8 * * *"
-  workflow_dispatch:  # Allow manual trigger
+    # 每天北京时间早上 8:00 执行 (UTC 00:00)
+    - cron: "0 0 * * *"
+  workflow_dispatch:  # 支持手动触发
+
+# 防止同时运行多个实例
+concurrency:
+  group: daily-digest
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -12,12 +17,14 @@ permissions:
 jobs:
   build-digest:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,11 +44,23 @@ jobs:
           ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
         run: python main.py
 
+      - name: Check for new digest files
+        id: check_changes
+        run: |
+          git add archives/ DIGEST.md
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No new digest files generated."
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "New digest files detected."
+          fi
+
       - name: Commit and push digest
+        if: steps.check_changes.outputs.has_changes == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add archives/ DIGEST.md
           DATE=$(date -u +%Y-%m-%d)
-          git diff --cached --quiet || git commit -m "📰 AI Digest for ${DATE}"
+          git commit -m "📰 AI Digest for ${DATE}"
           git push

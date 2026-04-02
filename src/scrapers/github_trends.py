@@ -1,0 +1,134 @@
+"""
+github_trends.py – GitHub Trending scraper.
+
+Scrapes the GitHub Trending page for repositories and filters for AI/ML
+projects by matching descriptions and topics against keyword patterns.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from typing import List
+
+import requests
+from bs4 import BeautifulSoup
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+from src.config import settings
+from src.models import Article
+
+logger = logging.getLogger(__name__)
+
+GITHUB_TRENDING_URL = "https://github.com/trending"
+
+
+class GithubTrendsScraper:
+    """Scrape today's trending GitHub repos and filter for AI content."""
+
+    def __init__(self) -> None:
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "User-Agent": settings.user_agent,
+                "Accept": "text/html",
+            }
+        )
+        self.ai_re = re.compile(settings.ai_pattern())
+
+    # -- public --------------------------------------------------------------
+
+    def scrape(self) -> List[Article]:
+        """Return AI-related trending repos."""
+        logger.info("Fetching GitHub Trending page …")
+        articles: list[Article] = []
+
+        for lang in ("python", ""):
+            try:
+                repos = self._fetch_trending(language=lang)
+                for repo in repos[: settings.github_max_repos]:
+                    if self._is_ai_related(repo):
+                        articles.append(repo)
+            except Exception as exc:
+                logger.error("GitHub Trends scrape failed (lang=%s): %s", lang, exc)
+
+        # Deduplicate by URL
+        seen: set[str] = set()
+        unique: list[Article] = []
+        for a in articles:
+            if a.url not in seen:
+                seen.add(a.url)
+                unique.append(a)
+
+        logger.info("GitHub: found %d AI-related repos.", len(unique))
+        return unique[: settings.github_max_repos]
+
+    # -- private -------------------------------------------------------------
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    def _fetch_trending(self, language: str = "") -> list[Article]:
+        url = GITHUB_TRENDING_URL
+        params: dict = {"since": "daily"}
+        if language:
+            url = f"{GITHUB_TRENDING_URL}/{language}"
+
+        resp = self.session.get(url, params=params, timeout=settings.request_timeout)
+        resp.raise_for_status()
+        return self._parse_html(resp.text)
+
+    def _parse_html(self, html: str) -> list[Article]:
+        soup = BeautifulSoup(html, "lxml")
+        articles: list[Article] = []
+
+        for row in soup.select("article.Box-row"):
+            # Repo name (e.g. "owner / repo")
+            h2 = row.select_one("h2 a")
+            if not h2:
+                continue
+            href = h2.get("href", "").strip()
+            full_name = href.lstrip("/")
+            repo_url = f"https://github.com{href}"
+
+            # Description
+            desc_tag = row.select_one("p")
+            description = desc_tag.get_text(strip=True) if desc_tag else ""
+
+            # Stars today
+            stars_today = 0
+            for span in row.select("span.d-inline-block.float-sm-right"):
+                text = span.get_text(strip=True).replace(",", "")
+                digits = re.sub(r"[^\d]", "", text)
+                if digits:
+                    stars_today = int(digits)
+
+            # Total stars
+            total_stars = 0
+            star_links = row.select("a.Link--muted.d-inline-block.mr-3")
+            for link in star_links:
+                text = link.get_text(strip=True).replace(",", "")
+                if text.isdigit():
+                    total_stars = int(text)
+                    break
+
+            # Language
+            lang_span = row.select_one("span[itemprop='programmingLanguage']")
+            language = lang_span.get_text(strip=True) if lang_span else ""
+
+            tags = [t for t in ["github-trending", language.lower()] if t]
+
+            articles.append(
+                Article(
+                    title=full_name,
+                    url=repo_url,
+                    source="github",
+                    description=description,
+                    score=total_stars,
+                    tags=tags,
+                )
+            )
+
+        return articles
+
+    def _is_ai_related(self, article: Article) -> bool:
+        text = f"{article.title} {article.description} {' '.join(article.tags)}"
+        return bool(self.ai_re.search(text))
