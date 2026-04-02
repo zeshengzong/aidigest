@@ -5,6 +5,14 @@
 
 ---
 
+{% if overview %}
+## 📋 今日概览
+
+{{ overview }}
+
+---
+{% endif %}
+
 {% if top_story %}
 ## 🏆 Top Story
 
@@ -12,7 +20,7 @@
 
 {{ top_story.summary }}
 
-{% if top_story.score %}⭐ Score: **{{ top_story.score }}**{% endif %} · 📰 Source: **{{ top_story.source }}**{% if top_story.author %} · 👤 {{ top_story.author }}{% endif %}
+{% if top_story.score %}⭐ Score: **{{ top_story.score }}**{% endif %} · 📰 Source: **{{ top_story.source }}**{% if top_story.author %} · 👤 {{ top_story.author }}{% endif %}{% if top_story.category %} · 🏷️ {{ top_story.category }}{% endif %}
 
 ---
 {% endif %}
@@ -24,34 +32,56 @@
 {% if hn_articles %}
 ## 📰 Hacker News
 
-| # | Title | Score | Summary |
-|---|-------|------:|---------|
+| # | Title | Score | 💬 | Category | Summary |
+|---|-------|------:|---:|----------|---------|
 {% for a in hn_articles %}
-| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.score or "–" }} | {{ a.summary }} |
+{% if not top_story or a.url != top_story.url %}
+| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.score or "–" }} | {{ a.comment_count or "–" }} | {{ a.category or "–" }} | {{ a.summary }} |
+{% endif %}
 {% endfor %}
 
 {% endif %}
 {% if gh_articles %}
 ## 🔥 GitHub Trending
 
-| # | Repository | ⭐ Stars | Description |
-|---|-----------|--------:|-------------|
+| # | Repository | ⭐ Stars | 📈 Today | Language | Description |
+|---|-----------|--------:|--------:|----------|-------------|
 {% for a in gh_articles %}
-| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.score or "–" }} | {{ a.summary or a.description }} |
+{% if not top_story or a.url != top_story.url %}
+| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ "{:,}".format(a.score) if a.score else "–" }} | {{ "+{}".format(a.stars_today) if a.stars_today else "–" }} | {{ a.language or "–" }} | {{ a.summary or a.description }} |
+{% endif %}
 {% endfor %}
 
 {% endif %}
 {% if hf_articles %}
 ## 🤗 Hugging Face
 
-| # | Title | Type | Summary |
-|---|-------|------|---------|
+| # | Title | Type | Category | Summary |
+|---|-------|------|----------|---------|
 {% for a in hf_articles %}
-| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.tags[0] if a.tags else "–" }} | {{ a.summary or a.description }} |
+{% if not top_story or a.url != top_story.url %}
+| {{ loop.index }} | [{{ a.title | truncate(80) }}]({{ a.url }}) | {{ a.tags[0] if a.tags else "–" }} | {{ a.category or "–" }} | {{ a.summary or a.description | truncate(200) }} |
+{% endif %}
 {% endfor %}
 
 {% endif %}
 
 ---
 
-<sub>Generated on {{ generated_at }} by [AIDigest](https://github.com/yourname/aidigest).</sub>
+## 📊 Statistics
+
+| Source | Count |
+|--------|------:|
+| Hacker News | {{ hn_articles | length }} |
+| GitHub Trending | {{ gh_articles | length }} |
+| Hugging Face | {{ hf_articles | length }} |
+| **Total** | **{{ articles | length }}** |
+
+{% set categories = articles | map(attribute='category') | select | unique | list %}
+{% if categories %}
+**Topic Distribution**: {{ categories | join(" · ") }}
+{% endif %}
+
+---
+
+<sub>Generated on {{ generated_at }} by [AIDigest](https://github.com/zeshengzong/aidigest).</sub>

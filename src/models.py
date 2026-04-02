@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 
 class Article(BaseModel):
@@ -31,6 +31,16 @@ class Article(BaseModel):
     tags: list[str] = Field(default_factory=list)
     published_at: Optional[datetime] = Field(default=None)
 
+    # GitHub-specific
+    stars_today: Optional[int] = Field(default=None, description="Stars gained today.")
+    language: Optional[str] = Field(default=None, description="Programming language.")
+
+    # HN-specific
+    comment_count: Optional[int] = Field(default=None, description="Number of comments.")
+
+    # Topic category assigned by classifier
+    category: str = Field(default="", description="Topic category, e.g. 'LLM', 'Agent', 'CV'.")
+
     # Populated by the summariser
     summary: str = Field(default="", description="LLM-generated summary.")
 
@@ -40,6 +50,9 @@ class Digest(BaseModel):
 
     date: str = Field(
         ..., description="ISO date string (YYYY-MM-DD) for this digest."
+    )
+    overview: str = Field(
+        default="", description="LLM-generated daily overview paragraph."
     )
     top_story: Optional[Article] = Field(
         default=None, description="The highest-scoring article of the day."

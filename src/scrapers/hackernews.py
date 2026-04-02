@@ -7,6 +7,7 @@ Uses the official Firebase-backed HN API:
 
 from __future__ import annotations
 
+import html
 import logging
 import re
 from datetime import datetime, timezone
@@ -81,6 +82,19 @@ class HackerNewsScraper:
         return bool(self._pattern.search(text))
 
     @staticmethod
+    def _clean_html(text: str) -> str:
+        """Strip HTML tags and decode entities."""
+        if not text:
+            return ""
+        # Remove HTML tags
+        clean = re.sub(r"<[^>]+>", " ", text)
+        # Decode HTML entities (&#x2F; -> /, &amp; -> &, etc.)
+        clean = html.unescape(clean)
+        # Collapse whitespace
+        clean = re.sub(r"\s+", " ", clean).strip()
+        return clean
+
+    @staticmethod
     def _to_article(item: dict) -> Article:
         # HN "Ask HN" / "Show HN" posts may lack a url field
         url = item.get("url") or f"https://news.ycombinator.com/item?id={item['id']}"
@@ -88,12 +102,16 @@ class HackerNewsScraper:
         if ts := item.get("time"):
             published = datetime.fromtimestamp(ts, tz=timezone.utc)
 
+        raw_text = item.get("text", "")
+        description = HackerNewsScraper._clean_html(raw_text)[:300]
+
         return Article(
             title=item.get("title", "(no title)"),
             url=url,
             source="hackernews",
-            description=item.get("text", "")[:300],
+            description=description,
             score=item.get("score"),
             author=item.get("by"),
+            comment_count=item.get("descendants", 0),
             published_at=published,
         )

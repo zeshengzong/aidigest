@@ -2,7 +2,7 @@
 """
 main.py – Entry point for AIDigest.
 
-Orchestrates:  Scrape → Summarise → Generate Markdown digest.
+Orchestrates:  Scrape → Classify → Summarise → Generate Markdown digest.
 """
 
 from __future__ import annotations
@@ -15,7 +15,8 @@ from datetime import date, datetime, timezone
 from src.config import settings
 from src.models import Article, Digest
 from src.scrapers import run_all_scrapers
-from src.summarizer import summarize_articles
+from src.classifier import classify_articles
+from src.summarizer import summarize_articles, generate_overview
 from src.generator import save_digest
 
 logging.basicConfig(
@@ -35,19 +36,23 @@ def build_digest(target_date: str | None = None) -> Digest:
     logger.info("=" * 60)
 
     # ---- 1. Scrape ---------------------------------------------------------
-    logger.info("Step 1/3: Scraping sources …")
+    logger.info("Step 1/5: Scraping sources …")
     articles = run_all_scrapers()
 
     if not articles:
         logger.warning("No articles collected from any source. Digest will be empty.")
 
-    # ---- 2. Rank & pick top story ------------------------------------------
+    # ---- 2. Classify -------------------------------------------------------
+    logger.info("Step 2/5: Classifying %d articles …", len(articles))
+    articles = classify_articles(articles)
+
+    # ---- 3. Rank & pick top story ------------------------------------------
     scored = [a for a in articles if a.score is not None]
     scored.sort(key=lambda a: a.score or 0, reverse=True)
     top_story = scored[0] if scored else None
 
-    # ---- 3. Summarise ------------------------------------------------------
-    logger.info("Step 2/3: Summarising %d articles …", len(articles))
+    # ---- 4. Summarise ------------------------------------------------------
+    logger.info("Step 3/5: Summarising %d articles …", len(articles))
     articles = summarize_articles(articles, top_story=top_story)
 
     # Refresh top_story reference after summarisation
@@ -57,10 +62,15 @@ def build_digest(target_date: str | None = None) -> Digest:
                 top_story = a
                 break
 
-    # ---- 4. Generate Markdown ----------------------------------------------
-    logger.info("Step 3/3: Generating Markdown …")
+    # ---- 5. Generate overview ----------------------------------------------
+    logger.info("Step 4/5: Generating daily overview …")
+    overview = generate_overview(articles)
+
+    # ---- 6. Generate Markdown ----------------------------------------------
+    logger.info("Step 5/5: Generating Markdown …")
     digest = Digest(
         date=today,
+        overview=overview,
         top_story=top_story,
         articles=articles,
         generated_at=datetime.now(tz=timezone.utc),

@@ -44,9 +44,12 @@ class HuggingFaceScraper:
         except Exception as exc:
             logger.error("HuggingFace models fetch failed: %s", exc)
 
-        # 2. Daily papers page
+        # 2. Daily papers via API (preferred) with HTML fallback
         try:
-            articles.extend(self._fetch_daily_papers())
+            papers = self._fetch_daily_papers_api()
+            if not papers:
+                papers = self._fetch_daily_papers_html()
+            articles.extend(papers)
         except Exception as exc:
             logger.error("HuggingFace papers fetch failed: %s", exc)
 
@@ -94,11 +97,49 @@ class HuggingFaceScraper:
 
         return articles
 
-    # -- private: papers -----------------------------------------------------
+    # -- private: papers (API) -----------------------------------------------
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
-    def _fetch_daily_papers(self) -> list[Article]:
-        """Scrape the Hugging Face daily papers page."""
+    def _fetch_daily_papers_api(self) -> list[Article]:
+        """Fetch daily papers via the HF API, including abstracts."""
+        resp = self.session.get(
+            f"{HF_API_BASE}/daily_papers",
+            timeout=settings.request_timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        articles: list[Article] = []
+        for entry in data:
+            paper = entry.get("paper", {})
+            paper_id = paper.get("id", "")
+            title = paper.get("title", "")
+            abstract = paper.get("summary", "")
+
+            if not paper_id or not title:
+                continue
+
+            # Upvotes from the daily_papers endpoint
+            upvotes = entry.get("paper", {}).get("upvotes", 0)
+
+            articles.append(
+                Article(
+                    title=title,
+                    url=f"https://huggingface.co/papers/{paper_id}",
+                    source="huggingface",
+                    description=abstract[:500],
+                    score=upvotes,
+                    tags=["paper"],
+                )
+            )
+
+        return articles
+
+    # -- private: papers (HTML fallback) -------------------------------------
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    def _fetch_daily_papers_html(self) -> list[Article]:
+        """Scrape the Hugging Face daily papers page as fallback."""
         resp = self.session.get(HF_PAPERS_URL, timeout=settings.request_timeout)
         resp.raise_for_status()
         return self._parse_papers_html(resp.text)
@@ -128,7 +169,6 @@ class HuggingFaceScraper:
             else:
                 continue
 
-            # Avoid duplicates within the same parse
             articles.append(
                 Article(
                     title=title,

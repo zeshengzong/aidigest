@@ -75,11 +75,22 @@ class Settings(BaseSettings):
 
     # ---- Output ------------------------------------------------------------
     archives_dir: str = Field(default="archives")
+    summary_language: str = Field(
+        default="zh",
+        description="Language for LLM summaries: 'zh' (Chinese) or 'en' (English).",
+    )
+
+    @field_validator("summary_language", mode="before")
+    @classmethod
+    def _default_summary_language(cls, v: str) -> str:
+        if not v or v.strip() == "":
+            return "zh"
+        return v.strip().lower()
 
     # ---- Misc --------------------------------------------------------------
     request_timeout: int = Field(default=30, description="HTTP timeout in seconds.")
     user_agent: str = Field(
-        default="AIDigest/1.0 (https://github.com/yourname/aidigest)",
+        default="AIDigest/1.0 (https://github.com/zeshengzong/aidigest)",
     )
 
     class Config:

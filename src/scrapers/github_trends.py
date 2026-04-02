@@ -93,22 +93,11 @@ class GithubTrendsScraper:
             desc_tag = row.select_one("p")
             description = desc_tag.get_text(strip=True) if desc_tag else ""
 
-            # Stars today
-            stars_today = 0
-            for span in row.select("span.d-inline-block.float-sm-right"):
-                text = span.get_text(strip=True).replace(",", "")
-                digits = re.sub(r"[^\d]", "", text)
-                if digits:
-                    stars_today = int(digits)
+            # Total stars – try multiple selectors for robustness
+            total_stars = self._extract_total_stars(row)
 
-            # Total stars
-            total_stars = 0
-            star_links = row.select("a.Link--muted.d-inline-block.mr-3")
-            for link in star_links:
-                text = link.get_text(strip=True).replace(",", "")
-                if text.isdigit():
-                    total_stars = int(text)
-                    break
+            # Stars today
+            stars_today = self._extract_today_stars(row)
 
             # Language
             lang_span = row.select_one("span[itemprop='programmingLanguage']")
@@ -123,11 +112,52 @@ class GithubTrendsScraper:
                     source="github",
                     description=description,
                     score=total_stars,
+                    stars_today=stars_today,
+                    language=language,
                     tags=tags,
                 )
             )
 
         return articles
+
+    @staticmethod
+    def _extract_total_stars(row) -> int:
+        """Try multiple strategies to find the total star count."""
+        # Strategy 1: <a> linking to /stargazers with star icon nearby
+        for link in row.select("a[href$='/stargazers']"):
+            text = link.get_text(strip=True).replace(",", "")
+            digits = re.sub(r"[^\d]", "", text)
+            if digits:
+                return int(digits)
+
+        # Strategy 2: generic star links (older layout)
+        for link in row.select("a.Link--muted"):
+            href = link.get("href", "")
+            if "/stargazers" in href:
+                text = link.get_text(strip=True).replace(",", "")
+                digits = re.sub(r"[^\d]", "", text)
+                if digits:
+                    return int(digits)
+
+        # Strategy 3: any <a> with class containing 'muted' and a number
+        for link in row.select("a[class*='muted']"):
+            text = link.get_text(strip=True).replace(",", "")
+            if text.isdigit():
+                return int(text)
+
+        return 0
+
+    @staticmethod
+    def _extract_today_stars(row) -> int:
+        """Extract the 'stars today' count."""
+        # Usually in a <span> with text like "1,234 stars today"
+        for span in row.select("span"):
+            text = span.get_text(strip=True)
+            if "stars today" in text.lower() or "stars this" in text.lower():
+                digits = re.sub(r"[^\d]", "", text.replace(",", ""))
+                if digits:
+                    return int(digits)
+        return 0
 
     def _is_ai_related(self, article: Article) -> bool:
         text = f"{article.title} {article.description} {' '.join(article.tags)}"
