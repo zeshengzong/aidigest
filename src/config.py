@@ -87,6 +87,15 @@ class Settings(BaseSettings):
         default="zh",
         description="Language for LLM summaries: 'zh' (Chinese) or 'en' (English).",
     )
+    summarize_max_articles: int = Field(
+        default=30, ge=0,
+        description="Max articles to send to LLM per run (0 = unlimited). "
+                    "Caps API calls to avoid rate limits.",
+    )
+    summarize_delay_seconds: float = Field(
+        default=0.5, ge=0.0,
+        description="Seconds to sleep between consecutive LLM calls to throttle RPM.",
+    )
 
     @field_validator("summary_language", mode="before")
     @classmethod
