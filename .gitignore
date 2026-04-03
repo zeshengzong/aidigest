@@ -12,8 +12,10 @@ build/
 venv/
 env/
 
-# Environment variables
+# Environment variables – never commit real keys
 .env
+.env.*
+!.env.example
 
 # IDE
 .vscode/
