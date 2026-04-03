@@ -15,6 +15,10 @@ from src.models import Article
 from src.scrapers.hackernews import HackerNewsScraper
 from src.scrapers.github_trends import GithubTrendsScraper
 from src.scrapers.huggingface import HuggingFaceScraper
+from src.scrapers.arxiv import ArxivScraper
+from src.scrapers.reddit import RedditScraper
+from src.scrapers.producthunt import ProductHuntScraper
+from src.scrapers.ai_blogs import AIBlogsScraper
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +26,10 @@ __all__ = [
     "HackerNewsScraper",
     "GithubTrendsScraper",
     "HuggingFaceScraper",
+    "ArxivScraper",
+    "RedditScraper",
+    "ProductHuntScraper",
+    "AIBlogsScraper",
     "run_all_scrapers",
 ]
 
@@ -38,6 +46,10 @@ def run_all_scrapers() -> List[Article]:
         ("HackerNews", HackerNewsScraper()),
         ("GitHubTrends", GithubTrendsScraper()),
         ("HuggingFace", HuggingFaceScraper()),
+        ("ArXiv", ArxivScraper()),
+        ("Reddit", RedditScraper()),
+        ("ProductHunt", ProductHuntScraper()),
+        ("AIBlogs", AIBlogsScraper()),
     ]
 
     for name, scraper in scrapers:

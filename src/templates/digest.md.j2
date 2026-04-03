@@ -1,7 +1,7 @@
 {# digest.md.j2 – Jinja2 template for the daily AI digest #}
 # 🤖 AI Digest – {{ date }}
 
-> Auto-generated daily summary of AI news from Hacker News, GitHub Trends, and Hugging Face.
+> Auto-generated daily summary of AI news from Hacker News, GitHub Trends, Hugging Face, ArXiv, Reddit, Product Hunt, and official AI blogs.
 
 ---
 
@@ -28,7 +28,23 @@
 {% set hn_articles = articles | selectattr("source", "equalto", "hackernews") | list %}
 {% set gh_articles = articles | selectattr("source", "equalto", "github") | list %}
 {% set hf_articles = articles | selectattr("source", "equalto", "huggingface") | list %}
+{% set arxiv_articles = articles | selectattr("source", "equalto", "arxiv") | list %}
+{% set reddit_articles = articles | selectattr("source", "equalto", "reddit") | list %}
+{% set ph_articles = articles | selectattr("source", "equalto", "producthunt") | list %}
+{% set blog_articles = articles | selectattr("source", "equalto", "ai_blogs") | list %}
 
+{% if blog_articles %}
+## 🏢 Official AI Blogs
+
+| # | Title | Company | Summary |
+|---|-------|---------|---------|
+{% for a in blog_articles %}
+{% if not top_story or a.url != top_story.url %}
+| {{ loop.index }} | [{{ a.title | truncate(80) }}]({{ a.url }}) | {{ a.author or "–" }} | {{ a.summary or a.description | truncate(150) }} |
+{% endif %}
+{% endfor %}
+
+{% endif %}
 {% if hn_articles %}
 ## 📰 Hacker News
 
@@ -37,6 +53,18 @@
 {% for a in hn_articles %}
 {% if not top_story or a.url != top_story.url %}
 | {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.score or "–" }} | {{ a.comment_count or "–" }} | {{ a.category or "–" }} | {{ a.summary }} |
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% if reddit_articles %}
+## 💬 Reddit
+
+| # | Title | Subreddit | Score | 💬 | Summary |
+|---|-------|-----------|------:|---:|---------|
+{% for a in reddit_articles %}
+{% if not top_story or a.url != top_story.url %}
+| {{ loop.index }} | [{{ a.title | truncate(80) }}]({{ a.url }}) | {{ a.tags[0] if a.tags else "–" }} | {{ a.score or "–" }} | {{ a.comment_count or "–" }} | {{ a.summary or a.description | truncate(150) }} |
 {% endif %}
 {% endfor %}
 
@@ -53,6 +81,18 @@
 {% endfor %}
 
 {% endif %}
+{% if arxiv_articles %}
+## 📄 ArXiv Papers
+
+| # | Title | Authors | Category | Summary |
+|---|-------|---------|----------|---------|
+{% for a in arxiv_articles %}
+{% if not top_story or a.url != top_story.url %}
+| {{ loop.index }} | [{{ a.title | truncate(80) }}]({{ a.url }}) | {{ a.author or "–" }} | {{ a.category or "–" }} | {{ a.summary or a.description | truncate(150) }} |
+{% endif %}
+{% endfor %}
+
+{% endif %}
 {% if hf_articles %}
 ## 🤗 Hugging Face
 
@@ -65,6 +105,18 @@
 {% endfor %}
 
 {% endif %}
+{% if ph_articles %}
+## 🚀 Product Hunt
+
+| # | Product | Votes | Summary |
+|---|---------|------:|---------|
+{% for a in ph_articles %}
+{% if not top_story or a.url != top_story.url %}
+| {{ loop.index }} | [{{ a.title }}]({{ a.url }}) | {{ a.score or "–" }} | {{ a.summary or a.description | truncate(150) }} |
+{% endif %}
+{% endfor %}
+
+{% endif %}
 
 ---
 
@@ -72,9 +124,13 @@
 
 | Source | Count |
 |--------|------:|
+| Official AI Blogs | {{ blog_articles | length }} |
 | Hacker News | {{ hn_articles | length }} |
+| Reddit | {{ reddit_articles | length }} |
 | GitHub Trending | {{ gh_articles | length }} |
+| ArXiv | {{ arxiv_articles | length }} |
 | Hugging Face | {{ hf_articles | length }} |
+| Product Hunt | {{ ph_articles | length }} |
 | **Total** | **{{ articles | length }}** |
 
 {% set categories = articles | map(attribute='category') | select | unique | list %}

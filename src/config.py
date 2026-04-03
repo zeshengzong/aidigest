@@ -60,6 +60,14 @@ class Settings(BaseSettings):
     hn_max_stories: int = Field(default=30, ge=1, le=500)
     github_max_repos: int = Field(default=20, ge=1, le=100)
     hf_max_items: int = Field(default=20, ge=1, le=100)
+    arxiv_max_papers: int = Field(default=15, ge=1, le=100)
+    reddit_max_posts: int = Field(default=15, ge=1, le=100)
+    ph_max_products: int = Field(default=10, ge=1, le=50)
+    blog_max_posts: int = Field(default=10, ge=1, le=50)
+    blog_days_lookback: int = Field(
+        default=2, ge=1, le=30,
+        description="Only include blog posts from the last N days.",
+    )
 
     # AI-keyword filter (case-insensitive regex fragments)
     ai_keywords: list[str] = Field(
