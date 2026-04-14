@@ -83,6 +83,17 @@ TOP_STORY_SYSTEM_PROMPT = (
     + _lang_hint()
 )
 
+TAGLINE_SYSTEM_PROMPT = (
+    "You are an expert tech journalist writing a daily AI newsletter. "
+    "Given a list of today's AI news headlines and their categories, "
+    "write a summary paragraph (around 200 Chinese characters / 100 English words) "
+    "that captures the key themes, notable releases, and most exciting breakthroughs of the day. "
+    "Be vivid and specific – name key products, companies, or papers. "
+    "Cover 3-5 highlights, weaving them into a cohesive narrative. "
+    "Return ONLY the summary paragraph, nothing else. "
+    + _lang_hint()
+)
+
 OVERVIEW_SYSTEM_PROMPT = (
     "You are an expert tech journalist writing a daily AI newsletter. "
     "Given a list of today's AI news headlines and their categories, "
@@ -291,6 +302,35 @@ def summarize_articles(
     return articles
 
 
+def _build_headlines_msg(articles: List[Article]) -> str:
+    """Build a user message listing all article headlines for LLM prompts."""
+    lines: list[str] = []
+    for a in articles:
+        cat = a.category or "AI"
+        lines.append(f"[{cat}] {a.title} (source: {a.source})")
+    return (
+        f"Today's AI news headlines ({len(articles)} items):\n"
+        + "\n".join(lines)
+    )
+
+
+def generate_tagline(articles: List[Article]) -> str:
+    """Generate a one-sentence tagline summarising the day's core content."""
+    if not _has_api_key() or not articles:
+        return ""
+
+    try:
+        backend = _get_backend()
+    except Exception:
+        return ""
+
+    try:
+        return backend.complete(TAGLINE_SYSTEM_PROMPT, _build_headlines_msg(articles))
+    except Exception as exc:
+        logger.warning("Tagline generation failed: %s", exc)
+        return ""
+
+
 def generate_overview(articles: List[Article]) -> str:
     """Generate a daily overview paragraph from all article headlines."""
     if not _has_api_key():
@@ -301,18 +341,8 @@ def generate_overview(articles: List[Article]) -> str:
     except Exception:
         return ""
 
-    lines: list[str] = []
-    for a in articles:
-        cat = a.category or "AI"
-        lines.append(f"[{cat}] {a.title} (source: {a.source})")
-
-    user_msg = (
-        f"Today's AI news headlines ({len(articles)} items):\n"
-        + "\n".join(lines)
-    )
-
     try:
-        return backend.complete(OVERVIEW_SYSTEM_PROMPT, user_msg)
+        return backend.complete(OVERVIEW_SYSTEM_PROMPT, _build_headlines_msg(articles))
     except Exception as exc:
         logger.warning("Overview generation failed: %s", exc)
         return ""

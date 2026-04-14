@@ -11,7 +11,9 @@
 - **7 大数据源** — Hacker News、GitHub Trending、Hugging Face、ArXiv、Reddit、Product Hunt、官方 AI 博客
 - **主题自动分类** — 基于关键词将文章归类为 LLM / Agent / CV / RAG / MLOps 等 12 个主题
 - **LLM 智能摘要** — 支持 OpenAI 和 Anthropic 双后端，默认生成中文摘要
+- **每日核心总结** — 由 LLM 生成约 200 字的当日核心内容概述，置于报告最顶端
 - **每日趋势概览** — 由 LLM 综合当天所有资讯，生成一段趋势分析段落
+- **中英文双语模板** — 模板标题、表头、页脚等所有静态文本根据 `SUMMARY_LANGUAGE` 自动切换中/英文
 - **容错设计** — 单个爬虫或 LLM 失败不影响其他来源正常运行
 - **每日自动化** — GitHub Actions 定时执行，结果自动提交到仓库
 
@@ -71,7 +73,7 @@ python main.py --date 2026-04-01      # 指定日期
 | `OPENAI_MODEL` | `gpt-4o` | OpenAI 模型名 |
 | `ANTHROPIC_API_KEY` | — | Anthropic API Key（使用 Anthropic 时必填）|
 | `ANTHROPIC_MODEL` | `claude-sonnet-4-20250514` | Anthropic 模型名 |
-| `SUMMARY_LANGUAGE` | `zh` | 摘要语言：`zh`（中文）或 `en`（英文）|
+| `SUMMARY_LANGUAGE` | `zh` | 摘要及模板语言：`zh`（中文）或 `en`（英文）|
 | `HN_MAX_STORIES` | `30` | Hacker News 最大抓取数 |
 | `GITHUB_MAX_REPOS` | `20` | GitHub Trending 最大抓取数 |
 | `HF_MAX_ITEMS` | `20` | Hugging Face 最大抓取数 |
@@ -114,16 +116,17 @@ python main.py --date 2026-04-01      # 指定日期
 Hacker News ──┐
 GitHub Trends ─┤
 Hugging Face  ─┤
-ArXiv         ─┤──► 关键词过滤 ──► 主题分类 ──► LLM 摘要 ──► 每日概览
-Reddit        ─┤                  (classifier)  (summarizer)  (overview)
-Product Hunt  ─┤                                                  │
-AI Blogs      ─┘                                                  │
-                                                                   ▼
-                                                          Jinja2 模板渲染
-                                                                   │
-                                                                   ▼
-                                                    archives/YYYY-MM-DD.md
-                                                          DIGEST.md 索引
+ArXiv         ─┤──► 关键词过滤 ──► 主题分类 ──► LLM 摘要 ──► 核心总结 + 每日概览
+Reddit        ─┤                  (classifier)  (summarizer)   (tagline + overview)
+Product Hunt  ─┤                                                        │
+AI Blogs      ─┘                                                        │
+                                                                         ▼
+                                                                Jinja2 模板渲染
+                                                               (中/英文自动切换)
+                                                                         │
+                                                                         ▼
+                                                          archives/YYYY-MM-DD.md
+                                                                DIGEST.md 索引
 ```
 
 **Pipeline 各步骤：**
@@ -131,8 +134,9 @@ AI Blogs      ─┘                                                  │
 1. **Scrape** — 7 个爬虫并行抓取，单个失败不影响整体
 2. **Classify** — 基于规则的主题分类（LLM / Agent / CV / RAG / NLP 等 12 类）
 3. **Summarise** — LLM 为每篇文章生成一句话摘要，Top Story 生成段落摘要
-4. **Overview** — LLM 综合所有资讯生成当日 AI 领域趋势概述
-5. **Render** — Jinja2 模板渲染为 Markdown，包含统计面板和主题分布
+4. **Tagline** — LLM 生成约 200 字的当日核心内容概述，放在报告最顶端
+5. **Overview** — LLM 综合所有资讯生成当日 AI 领域趋势概述
+6. **Render** — Jinja2 模板渲染为 Markdown（根据语言设置自动切换中/英文），包含统计面板和主题分布
 
 ---
 

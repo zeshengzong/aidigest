@@ -51,6 +51,9 @@ class Digest(BaseModel):
     date: str = Field(
         ..., description="ISO date string (YYYY-MM-DD) for this digest."
     )
+    tagline: str = Field(
+        default="", description="One-sentence highlight of the day's core content."
+    )
     overview: str = Field(
         default="", description="LLM-generated daily overview paragraph."
     )

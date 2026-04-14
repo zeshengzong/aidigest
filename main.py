@@ -16,7 +16,7 @@ from src.config import settings
 from src.models import Article, Digest
 from src.scrapers import run_all_scrapers
 from src.classifier import classify_articles
-from src.summarizer import summarize_articles, generate_overview
+from src.summarizer import summarize_articles, generate_overview, generate_tagline
 from src.generator import save_digest
 
 logging.basicConfig(
@@ -62,14 +62,16 @@ def build_digest(target_date: str | None = None) -> Digest:
                 top_story = a
                 break
 
-    # ---- 5. Generate overview ----------------------------------------------
-    logger.info("Step 4/5: Generating daily overview …")
+    # ---- 5. Generate tagline & overview -----------------------------------
+    logger.info("Step 4/5: Generating tagline & daily overview …")
+    tagline = generate_tagline(articles)
     overview = generate_overview(articles)
 
     # ---- 6. Generate Markdown ----------------------------------------------
     logger.info("Step 5/5: Generating Markdown …")
     digest = Digest(
         date=today,
+        tagline=tagline,
         overview=overview,
         top_story=top_story,
         articles=articles,

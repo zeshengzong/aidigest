@@ -1,6 +1,12 @@
 {# digest.md.j2 – Jinja2 template for the daily AI digest #}
 {# ---- i18n: Chinese / English label maps ---- #}
 {% set zh = lang | default("en") == "zh" %}
+{% if tagline %}
+{{ tagline }}
+
+---
+
+{% endif %}
 # 🤖 {{ "AI 日报" if zh else "AI Digest" }} – {{ date }}
 
 > {{ "每日自动汇总来自 Hacker News、GitHub Trends、Hugging Face、ArXiv、Reddit、Product Hunt 和 AI 官方博客的 AI 新闻。" if zh else "Auto-generated daily summary of AI news from Hacker News, GitHub Trends, Hugging Face, ArXiv, Reddit, Product Hunt, and official AI blogs." }}

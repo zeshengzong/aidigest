@@ -32,6 +32,7 @@ def render_digest(digest: Digest) -> str:
 
     return template.render(
         date=digest.date,
+        tagline=digest.tagline,
         overview=digest.overview,
         top_story=digest.top_story,
         articles=digest.articles,
