@@ -1,12 +1,14 @@
 {# digest.md.j2 – Jinja2 template for the daily AI digest #}
-# 🤖 AI Digest – {{ date }}
+{# ---- i18n: Chinese / English label maps ---- #}
+{% set zh = lang | default("en") == "zh" %}
+# 🤖 {{ "AI 日报" if zh else "AI Digest" }} – {{ date }}
 
-> Auto-generated daily summary of AI news from Hacker News, GitHub Trends, Hugging Face, ArXiv, Reddit, Product Hunt, and official AI blogs.
+> {{ "每日自动汇总来自 Hacker News、GitHub Trends、Hugging Face、ArXiv、Reddit、Product Hunt 和 AI 官方博客的 AI 新闻。" if zh else "Auto-generated daily summary of AI news from Hacker News, GitHub Trends, Hugging Face, ArXiv, Reddit, Product Hunt, and official AI blogs." }}
 
 ---
 
 {% if overview %}
-## 📋 今日概览
+## 📋 {{ "今日概览" if zh else "Daily Overview" }}
 
 {{ overview }}
 
@@ -14,13 +16,13 @@
 {% endif %}
 
 {% if top_story %}
-## 🏆 Top Story
+## 🏆 {{ "今日头条" if zh else "Top Story" }}
 
 ### [{{ top_story.title }}]({{ top_story.url }})
 
 {{ top_story.summary }}
 
-{% if top_story.score %}⭐ Score: **{{ top_story.score }}**{% endif %} · 📰 Source: **{{ top_story.source }}**{% if top_story.author %} · 👤 {{ top_story.author }}{% endif %}{% if top_story.category %} · 🏷️ {{ top_story.category }}{% endif %}
+{% if top_story.score %}⭐ {{ "评分" if zh else "Score" }}: **{{ top_story.score }}**{% endif %} · 📰 {{ "来源" if zh else "Source" }}: **{{ top_story.source }}**{% if top_story.author %} · 👤 {{ top_story.author }}{% endif %}{% if top_story.category %} · 🏷️ {{ top_story.category }}{% endif %}
 
 ---
 {% endif %}
@@ -34,9 +36,9 @@
 {% set blog_articles = articles | selectattr("source", "equalto", "ai_blogs") | list %}
 
 {% if blog_articles %}
-## 🏢 Official AI Blogs
+## 🏢 {{ "AI 官方博客" if zh else "Official AI Blogs" }}
 
-| # | Title | Company | Summary |
+| # | {{ "标题" if zh else "Title" }} | {{ "公司" if zh else "Company" }} | {{ "摘要" if zh else "Summary" }} |
 |---|-------|---------|---------|
 {% for a in blog_articles %}
 {% if not top_story or a.url != top_story.url %}
@@ -46,9 +48,9 @@
 
 {% endif %}
 {% if hn_articles %}
-## 📰 Hacker News
+## 📰 Hacker News {{ "热门" if zh else "" }}
 
-| # | Title | Score | 💬 | Category | Summary |
+| # | {{ "标题" if zh else "Title" }} | {{ "评分" if zh else "Score" }} | 💬 | {{ "分类" if zh else "Category" }} | {{ "摘要" if zh else "Summary" }} |
 |---|-------|------:|---:|----------|---------|
 {% for a in hn_articles %}
 {% if not top_story or a.url != top_story.url %}
@@ -58,9 +60,9 @@
 
 {% endif %}
 {% if reddit_articles %}
-## 💬 Reddit
+## 💬 Reddit {{ "热门" if zh else "" }}
 
-| # | Title | Subreddit | Score | 💬 | Summary |
+| # | {{ "标题" if zh else "Title" }} | {{ "版块" if zh else "Subreddit" }} | {{ "评分" if zh else "Score" }} | 💬 | {{ "摘要" if zh else "Summary" }} |
 |---|-------|-----------|------:|---:|---------|
 {% for a in reddit_articles %}
 {% if not top_story or a.url != top_story.url %}
@@ -70,9 +72,9 @@
 
 {% endif %}
 {% if gh_articles %}
-## 🔥 GitHub Trending
+## 🔥 GitHub {{ "趋势" if zh else "Trending" }}
 
-| # | Repository | ⭐ Stars | 📈 Today | Language | Description |
+| # | {{ "仓库" if zh else "Repository" }} | ⭐ {{ "星标" if zh else "Stars" }} | 📈 {{ "今日" if zh else "Today" }} | {{ "语言" if zh else "Language" }} | {{ "描述" if zh else "Description" }} |
 |---|-----------|--------:|--------:|----------|-------------|
 {% for a in gh_articles %}
 {% if not top_story or a.url != top_story.url %}
@@ -82,9 +84,9 @@
 
 {% endif %}
 {% if arxiv_articles %}
-## 📄 ArXiv Papers
+## 📄 ArXiv {{ "论文" if zh else "Papers" }}
 
-| # | Title | Authors | Category | Summary |
+| # | {{ "标题" if zh else "Title" }} | {{ "作者" if zh else "Authors" }} | {{ "分类" if zh else "Category" }} | {{ "摘要" if zh else "Summary" }} |
 |---|-------|---------|----------|---------|
 {% for a in arxiv_articles %}
 {% if not top_story or a.url != top_story.url %}
@@ -94,9 +96,9 @@
 
 {% endif %}
 {% if hf_articles %}
-## 🤗 Hugging Face
+## 🤗 Hugging Face {{ "热门" if zh else "" }}
 
-| # | Title | Type | Category | Summary |
+| # | {{ "标题" if zh else "Title" }} | {{ "类型" if zh else "Type" }} | {{ "分类" if zh else "Category" }} | {{ "摘要" if zh else "Summary" }} |
 |---|-------|------|----------|---------|
 {% for a in hf_articles %}
 {% if not top_story or a.url != top_story.url %}
@@ -106,9 +108,9 @@
 
 {% endif %}
 {% if ph_articles %}
-## 🚀 Product Hunt
+## 🚀 Product Hunt {{ "新品" if zh else "" }}
 
-| # | Product | Votes | Summary |
+| # | {{ "产品" if zh else "Product" }} | {{ "票数" if zh else "Votes" }} | {{ "摘要" if zh else "Summary" }} |
 |---|---------|------:|---------|
 {% for a in ph_articles %}
 {% if not top_story or a.url != top_story.url %}
@@ -120,24 +122,24 @@
 
 ---
 
-## 📊 Statistics
+## 📊 {{ "统计" if zh else "Statistics" }}
 
-| Source | Count |
+| {{ "来源" if zh else "Source" }} | {{ "数量" if zh else "Count" }} |
 |--------|------:|
-| Official AI Blogs | {{ blog_articles | length }} |
+| {{ "AI 官方博客" if zh else "Official AI Blogs" }} | {{ blog_articles | length }} |
 | Hacker News | {{ hn_articles | length }} |
 | Reddit | {{ reddit_articles | length }} |
 | GitHub Trending | {{ gh_articles | length }} |
 | ArXiv | {{ arxiv_articles | length }} |
 | Hugging Face | {{ hf_articles | length }} |
 | Product Hunt | {{ ph_articles | length }} |
-| **Total** | **{{ articles | length }}** |
+| **{{ "合计" if zh else "Total" }}** | **{{ articles | length }}** |
 
 {% set categories = articles | map(attribute='category') | select | unique | list %}
 {% if categories %}
-**Topic Distribution**: {{ categories | join(" · ") }}
+**{{ "主题分布" if zh else "Topic Distribution" }}**: {{ categories | join(" · ") }}
 {% endif %}
 
 ---
 
-<sub>Generated on {{ generated_at }} by [AIDigest](https://github.com/zeshengzong/aidigest).</sub>
+<sub>{{ "由 [AIDigest](https://github.com/zeshengzong/aidigest) 生成于 " + generated_at if zh else "Generated on " + generated_at + " by [AIDigest](https://github.com/zeshengzong/aidigest)." }}</sub>

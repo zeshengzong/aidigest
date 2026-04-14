@@ -36,6 +36,7 @@ def render_digest(digest: Digest) -> str:
         top_story=digest.top_story,
         articles=digest.articles,
         generated_at=digest.generated_at.strftime("%Y-%m-%d %H:%M UTC"),
+        lang=settings.summary_language,
     )
 
 
