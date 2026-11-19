@@ -1,5 +1,7 @@
 # 🤖 AI Digest – Archive Index
 
+- [2026-11-19](archives/2026-11-19.md)
+
 - [2026-11-18](archives/2026-11-18.md)
 
 - [2026-11-17](archives/2026-11-17.md)
